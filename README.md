@@ -1,253 +1,155 @@
-# 03_05 Continuous Deployment for Infrastructure as Code
+# 03_07 Solution: Build a Full CI/CD Pipeline
 
-GitHub Actions provides **Step summaries** to surface meaningful workflow output directly in the GitHub interface. Instead of digging through raw logs, step summaries provide easy-to-access, Markdown-formatted summaries for workflow runs.
+In this challenge, you’ll take a **misconfigured CI/CD pipeline** and transform it into a **clear, ordered continuous deployment workflow**. The pipeline already includes jobs for integration, artifact creation, testing, and deployments to multiple environments—but the jobs run **out of order** and lack **deployment protection** for production.
 
-## Common Uses for Step Summaries
+Your task is to correct the execution flow by adding job dependencies and then secure the production deployment using a **protected environment with required approvals**.
 
-- Report test results
-- Summarize build or deployment output
-- Highlight key changes or metrics
-- Provide reviewer-friendly context in pull requests
+By the end of this challenge, you’ll have a working pipeline that progresses cleanly from commit to production and pauses for manual approval before deploying to a protected environment.
 
-## What is `GITHUB_STEP_SUMMARY`?
+## Challenge Tasks
 
-- A built-in GitHub Actions variable
-- Contains a **file path** where a workflow step can write text
-- Any content written to this file appears in the **workflow summary**
-- Content is rendered as **GitHub Flavored Markdown**, including emojis
+To complete this challenge, you will:
 
-## Writing to the Step Summary
+- Create a new GitHub repository for the exercise
+- Upload the provided pipeline and README files
+- Move the workflow into the correct GitHub Actions directory
+- Observe an incorrectly ordered pipeline execution
+- Add job dependencies to create a proper deployment flow
+- Configure a protected production environment
+- Verify that production deployments require manual approval
 
-### Bash / Linux runners
+This challenge should take **20–30 minutes** to complete.
 
-```bash
-echo "### Summary Title" >> $GITHUB_STEP_SUMMARY
-```
-
-### PowerShell runners
-
-```powershell
-"### Summary Title" >> $env:GITHUB_STEP_SUMMARY
-```
-
-- Use `>>` to **append** content
-- Each step can add to the same summary file
-
-## Terraform + Step Summaries
-
-- `terraform plan` generates a report describing proposed infrastructure changes
-- Raw plan output can be difficult to scan in logs
-- CLI tools like `awk` and `sed` can:
-
-  - Extract relevant sections
-  - Reformat output as Markdown
-
-- The formatted plan can be written to `GITHUB_STEP_SUMMARY`
-- This allows teams to **review infrastructure changes before apply**
-
-## Why This Matters
-
-- Improves visibility for workflow runs
-- Makes pull requests more informative
-- Reduces reliance on raw logs
-- Adds a review checkpoint for infrastructure changes
-
-## References
-
-| Reference | Description |
-|----------|-------------|
-| [LinkedIn Learning Course: Learning Terraform](https://www.linkedin.com/learning/learning-terraform-15575129/learn-terraform-for-your-cloud-infrastructure) | Comprehensive LinkedIn Learning course covering Terraform fundamentals |
-| [About protected branches](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/about-protected-branches) | Official GitHub documentation explaining branch protection rules and availability |
-| [Adding a job summary](https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-commands#adding-a-job-summary) | GitHub Actions documentation for creating job summaries |
-| [Supercharging GitHub Actions with Job Summaries](https://github.blog/news-insights/product-news/supercharging-github-actions-with-job-summaries/) | GitHub blog post introducing job summaries feature |
-| [GitHub Flavored Markdown Spec](https://github.github.com/gfm/) | Official specification for GitHub Flavored Markdown |
-
-> [!IMPORTANT]
-> Protected branches are available in **public repositories** with **GitHub Free** and GitHub Free for organizations. Protected branches are also available in public and private repositories with GitHub Pro, GitHub Team, GitHub Enterprise Cloud, and GitHub Enterprise Server. For more information, see GitHub's plans.
-
-## Lab: Using Terraform Plans and Step Summaries in GitHub Actions
-
-In this lab, you’ll configure a GitHub repository to run a Terraform-based workflow that uses **step summaries** to present infrastructure changes clearly—both in workflow runs and pull requests. You’ll also apply repository protections to reinforce best practices around review and deployment approvals.
-
-> [!TIP]
-> If you run into issues with the lab, please refer to the [lab troubleshooting document](./LAB_TROUBLESHOOTING.md)
-
-### Prerequisites
+## Prerequisites
 
 Before you begin, make sure you have:
 
-- A **GitHub account**
-- An **AWS account** with permission to deploy CloudFormation stacks
-- The exercise files downloaded locally
+- the exercise files downloaded locally
 
-> [!IMPORTANT]
-> If your GitHub account is on the free plan, the repository you create for this lab **must be public** to use branch protection rules as needed in the lab.
+## Instructions
 
-### Step 0: Deploy the CloudFormation Stack to Create a Service Account
+### Step 1: Create a New GitHub Repository
 
-Use the provided CloudFormation template to create the AWS resources needed to bootstrap this lab.
+1. Log in to your GitHub account.
+2. Create a **new repository**.
+3. Enter a repository name of your choice.
+4. Set the repository visibility to **Public**.
+5. Select **Add a README file**.
+6. Select **Create repository**.
 
-- [Terraform service account CloudFormation template](./terraform-service-account-cloudformation-template.yml)
+### Step 2: Upload the Exercise Files
 
-Refer to the lab in [03_03 Create a Service account for Deployments](../03_03_create_a_service_account_for_deployments/README.md#lab-provision-a-service-account-and-deployment-targets-configure-github-actions-for-aws-deployments) for the steps to deploy the template.
+1. From the repository page, select **Add file → Upload files**.
+2. Upload the following files from the exercise directory:
 
-### Step 1: Create and Populate the Repository
+    - `cicd-pipeline.yml`
+    - `README.md`
 
-1. Create a new GitHub repository.
-2. When creating the repository:
+3. Commit the files directly to the `main` branch.
 
-   - Add a **README.md**
-   - Add a **.gitignore** file for **Terraform**
+### Step 3: Move the Workflow into the GitHub Actions Directory
 
-3. Upload all exercise files into the repository.
+GitHub Actions only runs workflows located in `.github/workflows`.
 
-   - Do **not** move any workflow files yet.
-   - The workflow files will be relocated later on in the lab.
+1. Select the `cicd-pipeline.yml` file in the repository.
+2. Select the **pencil icon** to edit the file.
+3. Update the file path to `.github/workflows/cicd-pipeline.yml`.
+4. Commit the change directly to the `main` branch.
 
-Once the files are uploaded, you’re ready to configure repository settings.
+This commit will automatically trigger a workflow run.
 
-### Step 2: Protect the `main` Branch
+### Step 4: Observe the Initial Pipeline Behavior
 
-To ensure all infrastructure changes go through review, you’ll add a branch protection rule.
+1. Select the **Actions** tab.
+2. Open the most recent workflow run.
+3. View the **graphical pipeline layout**.
 
-1. Open the repository **Settings**
-2. Under **Code and automation**, select **Branches**.
-3. Choose **Add classic branch protection rule**
-4. Configure the rule:
+You should notice that:
 
-   - **Branch name pattern:** `main`
-   - Enable **Require a pull request before merging**
+- Jobs are running in parallel or out of sequence
+- There is no clear progression from integration to production
+- Deployment and testing steps do not form a single path
 
-5. Scroll to the bottom and select **Create**
-6. If prompted, confirm the change using your **two-factor authentication code**
+![Initial workflow showing jobs out of order.](./images/ch3-challenge-01-initial-workflow-run.png)
 
-At this point, the `main` branch is protected and cannot be modified directly.
+### Step 5: Add Job Dependencies to Create a Proper Pipeline
 
-### Step 3: Create a Protected Deployment Environment
+Enforce a **clear execution order** using the `needs` keyword.
 
-Next, you’ll create an environment that requires approval before deployments run.
+Edit the workflow file and apply the following dependency rules:
 
-1. In repository **Settings**, select **Environments**
-2. Select **New environment**
-3. Name the environment **Production** with a capital "P".
-4. Select **Configure environment**
-5. Enable **Required reviewers**
-6. Add yourself as an approver
-7. Save the protection rules
+#### Required Job Order
 
-Any workflow targeting the **Production** environment will now pause and wait for approval.
+| Job                  | Dependency                                   |
+|----------------------|----------------------------------------------|
+| `integration`        | (Starts the pipeline)                        |
+| `build`              | `needs: integration`                         |
+| `test-artifact`      | `needs: build`                               |
+| `deploy-development` | `needs: build`                               |
+| `deploy-staging`     | `needs: [deploy-development, test-artifact]` |
+| `test-staging`       | `needs: deploy-staging`                      |
+| `deploy-production`  | `needs: test-staging`                        |
+| `test-production`    | `needs: deploy-production`                   |
 
-### Step 4: Add Repository Variables for AWS Authentication
+Be careful to match job names exactly as they appear in the workflow.
 
-The workflows in this lab [authenticate to AWS using OpenID Connect](https://docs.github.com/en/actions/concepts/security/openid-connect) and repository variables.
+### Step 6: Commit and Verify the Corrected Pipeline
 
-1. In repository **Settings**, select **Secrets and variables**
-2. Select **Actions**
-3. Open the **Variables** tab
-4. Create the following repository variables using values from your CloudFormation stack outputs:
+1. Commit your changes directly to the `main` branch.
+2. Navigate back to the **Actions** tab.
+3. Open the latest workflow run.
 
-| Variable Name            | Description                        |
-| ------------------------ | ---------------------------------- |
-| `AWS_REGION`             | AWS region from the stack outputs  |
-| `AWS_ROLE_ARN`           | IAM role ARN for GitHub Actions    |
-| `TERRAFORM_STATE_BUCKET` | S3 bucket name for Terraform state |
+Confirm that:
 
-Once these variables are set, the workflows are ready to authenticate with AWS.
+- Jobs now execute from left to right
+- Each stage waits for the correct previous stage
+- The pipeline flows cleanly from integration through production
 
-### Step 5: Enable the Terraform Pipeline Workflow
+At this point, your pipeline structure should match [the intended solution](./cicd-pipeline-solution.yml).
 
-Now you’ll activate the main Terraform workflow.
+![Corrected workflow with jobs in the proper order.](./images/ch3-challenge-02-corrected-workflow-run.png)
 
-1. Open the **Code** tab
-2. Open the file `00-terraform-pipeline.yml`
-3. Select the **Edit** (pencil) icon
-4. Rename the file to:
+### Step 7: Configure a Protected Production Environment
 
-    ```bash
-    .github/workflows/00-terraform-pipeline.yml
-    ```
+The workflow already references environments, but the deployment to the Production environment is not protected.
 
-#### Review the Workflow Configuration for Step Summaries
+1. Select **Settings** in the repository.
+2. Under **Code and automation**, select **Environments**.
+3. Select the **Production** environment.
+4. Enable **Require reviewers**.
+5. Add yourself as an approved reviewer.
+6. Save the protection rules.
 
-Before committing, take a moment to review where step summaries are written in the workflow:
+### Step 8: Verify Manual Approval for Production Deployments
 
-- Validation results written to `GITHUB_STEP_SUMMARY`
-- Terraform plan summary appended from `plan.md`
-- Terraform apply summary appended from `apply.md`
+1. Return to the **Actions** tab.
+2. Select the **CI/CD Pipeline** workflow.
+3. Select **Run workflow** to manually trigger the pipeline.
+4. Open the running workflow.
 
-This is how the workflow surfaces meaningful results without relying on raw logs.
+When the pipeline reaches the production deployment:
 
-### Step 6: Commit the Workflow Using a Pull Request
+- Execution should pause
+- A **review request** should appear for the Production environment
 
-Because the `main` branch is protected, you’ll commit this change using a pull request.
+![Workflow prompting for approval to deploy to the Production environment](./images/ch3-challenge-03-protected-production-deployment.png)
 
-1. Commit the change
-2. Confirm **Create a new branch for this commit and start a pull request** is selected
-3. Select **Propose changes**
-4. Create the pull request using the default title
+Approve the deployment to allow the pipeline to continue.
 
-Once the pull request is created, the workflow runs automatically.
+## Challenge Completion
 
-### Step 7: Review Step Summaries in the Pull Request
+1. Review the tasks in this challenge.
+2. Consider how the steps mirror a real-world continuous deployment workflow.
+3. Consider how manual approvals can be used to gate deployments to sensitive environments.
 
-As the workflow runs, the pull request updates with a summary of the Terraform plan.
+## Optional Reflection
 
-- Review the proposed infrastructure changes
-- Confirm the changes match your expectations
+- Why is it important for deployment pipelines to enforce job order?
+- What is the benefit of not requiring approval for deployments to non-production environments?
 
-If everything looks good, proceed to merge the pull request.
-
-Since this is a single-user lab, you may bypass the branch protection rule and merge.
-
-### Step 8: Approve the Production Deployment
-
-After the pull request is merged:
-
-1. Open the **Actions** tab
-2. Select the **00-Terraform Pipeline** workflow
-3. When prompted, select **Review deployments**
-4. Choose **Production**
-5. Select **Approve and deploy**
-
-The workflow resumes and applies the Terraform changes.
-
-Once complete, review the final step summary showing the applied changes and output links.
-
-### Step 9: Verify the Deployed Application
-
-The apply summary includes links to the EC2 instances Terraform deployed.
-
-- Select one of the links
-- Confirm the application is running
-
-Using step summaries, you were able to follow the entire pipeline without opening individual logs.
-
-### Cleanup: Removing the Lab Environment
-
-When you’re ready to clean up the resources created in this lab, follow these high-level steps:
-
-1. Disable the **00-Terraform Pipeline** workflow
-2. Remove the branch protection rule on `main`
-3. Delete the **Production** environment
-4. Rename `99-destroy-resources.yml` to:
-
-    ```bash
-    .github/workflows/99-destroy-resources.yml
-    ```
-
-5. Go to the **Actions** tab
-6. Run the **99-Destroy Resources** workflow using the workflow dispatch trigger
-7. After resources are destroyed, open the **AWS Console**
-8. Delete the CloudFormation stack used for this lab
-
-> [!IMPORTANT]
-> Deleting the CloudFormation stack will **not** delete the S3 bucket or its contents. This is intentional. The bucket is retained to prevent accidental loss of Terraform state and must be removed manually later if desired.
-
-### Lab Complete
-
-After completing this lab, you will have used step summaries to make Terraform workflows easier to understand, safer to review, and more effective for collaboration—without relying on raw logs.
+When you’re ready, move on to the next chapter!
 
 <!-- FooterStart -->
 ---
-[← 03_04 Continuous Deployment for Lambda Functions](../03_04_cd_for_lambda/README.md) | [03_06 Challenge: Build a Full CI/CD Pipeline →](../03_06_challenge_cicd_pipeline/README.md)
+[← 03_06 Challenge: Build a Full CI/CD Pipeline](../03_06_challenge_cicd_pipeline/README.md) | [04_01 Next Steps →](../../ch4_conclusion/04_01_next_steps/README.md)
 <!-- FooterEnd -->
